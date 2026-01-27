@@ -1,0 +1,23 @@
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Secrets and Config
+.env
+
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+__pycache__/
+*.py[cod]
+*.pyo
+
+
+# github copilot repository level configurations
+
+.github/
