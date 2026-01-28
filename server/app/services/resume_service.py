@@ -1,5 +1,6 @@
 from fastapi import UploadFile
 from app.models.resume import ResumeAnalysisResponse
+from app.services.pdf_service import extract_text_from_pdf
 
 
 async def analyze_resume(resume: UploadFile, job_description: str) -> ResumeAnalysisResponse:
@@ -13,10 +14,11 @@ async def analyze_resume(resume: UploadFile, job_description: str) -> ResumeAnal
     Returns:
         ResumeAnalysisResponse: Analysis results including match score, strengths, gaps
     """
-    # Placeholder implementation - replace with actual logic
-    content = await resume.read()
     
-    # TODO: Implement actual resume parsing and analysis logic
+    resume_text = await extract_text_from_pdf(resume)
+    
+    # TODO: Implement LLM-based analysis logic using resume_text and job_description
+    # The resume_text variable now contains all extracted text from the PDF
     # This is a placeholder response
     return ResumeAnalysisResponse(
         match_score=75.0,
