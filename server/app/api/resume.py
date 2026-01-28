@@ -20,7 +20,7 @@ async def analyze_resume_endpoint(
     Returns:
         ResumeAnalysisResponse: Analysis results with matching score and insights
     """
-    if not resume.filename.endswith('.pdf'):
+    if not resume.filename or not resume.filename.endswith('.pdf'):
         raise HTTPException(
             status_code=400,
             detail="Invalid file format. Please upload a PDF file."
