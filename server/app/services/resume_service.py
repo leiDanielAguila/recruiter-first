@@ -1,11 +1,22 @@
 from fastapi import UploadFile
 from app.models.resume import ResumeAnalysisResponse
 from app.services.pdf_service import extract_text_from_pdf
+import os
+import json
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
+
+
+load_dotenv()
+
+
+client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 async def analyze_resume(resume: UploadFile, job_description: str) -> ResumeAnalysisResponse:
     """
-    Analyzes resume against job description
+    Analyzes resume against job description using Google Generative AI
     
     Parameters:
         resume (UploadFile): PDF file containing the resume
@@ -17,23 +28,76 @@ async def analyze_resume(resume: UploadFile, job_description: str) -> ResumeAnal
     
     resume_text = await extract_text_from_pdf(resume)
     
-    # TODO: Implement LLM-based analysis logic using resume_text and job_description
-    # The resume_text variable now contains all extracted text from the PDF
-    # This is a placeholder response
-    return ResumeAnalysisResponse(
-        match_score=75.0,
-        summary="Resume shows relevant experience in the required field.",
-        strengths=[
-            "Strong technical background",
-            "Relevant work experience",
-            "Good educational qualifications"
-        ],
-        gaps=[
-            "Limited experience with specific tools mentioned in job description",
-            "Could highlight more leadership experience"
-        ],
-        recommendations=[
-            "Emphasize project management experience",
-            "Add certifications relevant to the role"
-        ]
-    )
+    prompt = f"""You are an expert recruiter and HR professional. Analyze the following resume against the job description and provide a detailed assessment.
+
+RESUME:
+{resume_text}
+
+JOB DESCRIPTION:
+{job_description}
+
+Analyze the candidate's fit for this role and provide your response in the following JSON format:
+{{
+    "match_score": <number between 0-100>,
+    "summary": "<brief summary of the candidate's overall fit>",
+    "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+    "gaps": ["<gap 1>", "<gap 2>"],
+    "recommendations": ["<recommendation 1>", "<recommendation 2>"]
+}}
+
+Consider:
+- Technical skills match
+- Experience level alignment
+- Educational background
+- Soft skills and achievements
+- Industry experience
+
+Provide ONLY the JSON response, no additional text."""
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-exp',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.95,
+                max_output_tokens=2048,
+            )
+        )
+        
+        response_text = response.text.strip() if response.text else ""
+        
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.startswith('```'):
+            response_text = response_text[3:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        response_text = response_text.strip()
+        
+        analysis_data = json.loads(response_text)
+        
+        return ResumeAnalysisResponse(
+            match_score=float(analysis_data.get("match_score", 0)),
+            summary=analysis_data.get("summary", ""),
+            strengths=analysis_data.get("strengths", []),
+            gaps=analysis_data.get("gaps", []),
+            recommendations=analysis_data.get("recommendations", [])
+        )
+        
+    except json.JSONDecodeError as e:
+        return ResumeAnalysisResponse(
+            match_score=0.0,
+            summary=f"Error parsing LLM response: {str(e)}",
+            strengths=[],
+            gaps=[],
+            recommendations=[]
+        )
+    except Exception as e:
+        return ResumeAnalysisResponse(
+            match_score=0.0,
+            summary=f"Error during analysis: {str(e)}",
+            strengths=[],
+            gaps=[],
+            recommendations=[]
+        )

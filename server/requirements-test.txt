@@ -1,0 +1,14 @@
+# Test Requirements
+# Install with: pip install -r requirements-test.txt
+
+# Core testing
+pytest==8.3.4
+pytest-asyncio==0.25.2
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+
+# HTTP testing
+httpx==0.28.1
+
+# Code coverage
+coverage==7.6.10
