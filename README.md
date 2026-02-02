@@ -146,15 +146,49 @@ POST /api/v1/resume/analyze
 }
 ```
 
-## 🧪 Testing ( to be implented later )
+## 🧪 Testing
+
+The project includes a comprehensive test suite with **45 unit tests** achieving **99% code coverage**.
+
+### Quick Start
 
 ```bash
-# Run tests 
+cd server
+
+# Install test dependencies
+pip install -r requirements-test.txt
+
+# Run all tests
 pytest
 
-# Run with coverage
-pytest --cov=app
+# Run with coverage report
+pytest --cov=app --cov-report=term-missing
+
+# Use the convenience script
+./run_tests.sh
 ```
+
+### Test Categories
+
+- **Health Checks** (6 tests): API health and welcome endpoints
+- **Models** (14 tests): Pydantic model validation and constraints
+- **PDF Service** (7 tests): PDF text extraction functionality
+- **Resume Service** (9 tests): LLM integration and analysis logic
+- **API Endpoints** (9 tests): Request validation and error handling
+
+### For AI Agents / CI/CD
+
+```bash
+# Simple command for automated testing
+cd server && source .venv/bin/activate && pytest
+
+# With coverage for CI pipelines
+cd server && source .venv/bin/activate && pytest --cov=app --cov-report=xml
+
+# Exit codes: 0 = success, 1 = tests failed
+```
+
+See `server/tests/README.md` for detailed documentation.
 
 ## 🚢 CI/CD & Deployment
 
