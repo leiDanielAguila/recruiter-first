@@ -21,3 +21,6 @@ __pycache__/
 # github copilot repository level configurations
 
 .github/
+
+# project notes (for dev only)
+.notes.txt
