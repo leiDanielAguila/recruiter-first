@@ -13,6 +13,9 @@ load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
+# Get model from environment variable, default to gemini-1.5-flash
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
 
 async def analyze_resume(resume: UploadFile, job_description: str) -> ResumeAnalysisResponse:
     """
@@ -56,24 +59,38 @@ Provide ONLY the JSON response, no additional text."""
 
     try:
         response = client.models.generate_content(
-            model='gemini-2.0-flash-exp',
+            model=GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.7,
-                top_p=0.95,
-                max_output_tokens=2048,
+                response_mime_type="application/json",
+                response_schema={
+                    "type": "object",
+                    "properties": {
+                        "match_score": {"type": "number"},
+                        "summary": {"type": "string"},
+                        "strengths": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        },
+                        "gaps": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        },
+                        "recommendations": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        }
+                    },
+                    "required": ["match_score", "summary", "strengths", "gaps", "recommendations"]
+                }
             )
         )
         
-        response_text = response.text.strip() if response.text else ""
-        
-        if response_text.startswith('```json'):
-            response_text = response_text[7:]
-        if response_text.startswith('```'):
-            response_text = response_text[3:]
-        if response_text.endswith('```'):
-            response_text = response_text[:-3]
-        response_text = response_text.strip()
+        # Ensure response.text is a string before parsing; raise a clear error if empty
+        response_text = response.text or ""
+        if not response_text:
+            raise ValueError("Empty response from LLM: response.text is None or empty")
         
         analysis_data = json.loads(response_text)
         

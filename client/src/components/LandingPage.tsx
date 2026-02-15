@@ -1,11 +1,22 @@
+import { useEffect, useState } from 'react'
 import { FileText, Briefcase, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
+import { trackVisit, getVisitCount } from '@/services/analytics'
 
 export function LandingPage() {
   const navigate = useNavigate()
-  // TODO: Replace with actual user count from API/database
-  const usersSignedUp = 1247;
+  const [visitCount, setVisitCount] = useState(1247)
+
+  // useEffect(() => {
+  //   const initAnalytics = async () => {
+  //     await trackVisit()
+  //     const count = await getVisitCount()
+  //     setVisitCount(count)
+  //   }
+    
+  //   initAnalytics()
+  // }, [])
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-between px-4 py-12">
@@ -36,12 +47,12 @@ export function LandingPage() {
         </div>
       </div>
       
-      {/* Users signed up count at bottom */}
+      {/* Website visit count at bottom */}
       <div className="text-center mt-12">
-        <p className="text-sm text-muted-foreground mb-2">Trusted by recruiters</p>
+        <p className="text-sm text-muted-foreground mb-2">Join thousands of recruiters</p>
         <div className="flex items-center gap-2 justify-center">
-          <div className="text-3xl font-bold text-foreground">{usersSignedUp.toLocaleString()}</div>
-          <span className="text-muted-foreground">users signed up</span>
+          <div className="text-3xl font-bold text-foreground">{visitCount.toLocaleString()}</div>
+          <span className="text-muted-foreground">website visits</span>
         </div>
       </div>
     </div>
