@@ -7,7 +7,7 @@ router = APIRouter()
 
 
 @router.post("/resume/analyze", response_model=ResumeAnalysisResponse)
-@limiter.limit("10/minute")  # 10 requests per minute per IP
+@limiter.limit("5/hour")  # 10 requests per hour per IP
 async def analyze_resume_endpoint(
     request: Request,
     resume: UploadFile = File(..., description="Resume PDF file"),
@@ -16,7 +16,7 @@ async def analyze_resume_endpoint(
     """
     Analyze resume against job description
     
-    Rate limit: 10 requests per minute per IP address
+    Rate limit: 10 requests per hour per IP address
     
     Parameters:
         resume (UploadFile): PDF file of the resume
