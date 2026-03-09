@@ -39,9 +39,9 @@ export function LandingPage() {
             Recruiter First
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
-            The AI-powered platform that helps recruiters find and connect with top talent faster than ever.
+            The AI-powered platform that analyze and fits your resume to the Job you're looking for.
           </p>
-          <Button size="lg" className="text-lg" onClick={() => navigate('/upload')}>
+          <Button size="lg" className="text-lg" onClick={() => navigate('/dashboard')}>
             Get Started
           </Button>
         </div>

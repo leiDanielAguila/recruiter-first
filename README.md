@@ -1,6 +1,6 @@
 # Recruiter First
 
-An AI-powered resume analysis tool that matches PDF resumes against job descriptions. This is a **proof of concept** demonstrating how AI agents can automate recruiting workflows by extracting resume content, analyzing candidate-role fit, and generating targeted interview questions.
+An automated resume-to-JD matching engine leveraging FastAPI and Google’s Gemini Pro. This project demonstrates a complete **DevOps lifecycle**, featuring containerized microservices managed via Docker, an automated CI/CD pipeline **orchestration**, and structured AI outputs using **RAG (Retrieval-Augmented Generation)**. It highlights the bridge between LLM integration and production-ready infrastructure.
 
 ## Purpose
 
@@ -62,6 +62,7 @@ npm install
 Create `server/.env`:
 
 ```bash
+
 # LLM_API_KEY=your_api_key_here
 # LLM_MODEL=claude-3-opus-20240229
 ```
