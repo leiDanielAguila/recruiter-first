@@ -1,9 +1,6 @@
 import pymupdf
 from fastapi import UploadFile
-from io import BytesIO
-
-MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB
-
+from app.utils.sanitization import MAX_PDF_BYTES
 
 async def extract_text_from_pdf(resume: UploadFile) -> str:
     """

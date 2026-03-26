@@ -1,111 +1,132 @@
-import { useState } from 'react'
-import { Upload, FileText, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { LoadingScreen } from '@/components/pages/LoadingScreen'
-import { ResultsScreen, type MatchResult } from '@/components/pages/ResultsScreen'
-import { analyzeResume, ResumeAnalysisError } from '@/services/resume'
+import { useState } from "react";
+import { Upload, FileText, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LoadingScreen } from "@/components/pages/LoadingScreen";
+import {
+  ResultsScreen,
+  type MatchResult,
+} from "@/components/pages/ResultsScreen";
+import { analyzeResume, ResumeAnalysisError } from "@/services/resume";
 
-type ViewState = 'upload' | 'loading' | 'results'
+type ViewState = "upload" | "loading" | "results";
 
 export function JobUpload() {
-  const [jobDescription, setJobDescription] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [viewState, setViewState] = useState<ViewState>('upload')
-  const [matchResult, setMatchResult] = useState<MatchResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [jobDescription, setJobDescription] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [viewState, setViewState] = useState<ViewState>("upload");
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // WARNING
-  // do not update MAX_WORDS, token limiter 
-  const MAX_WORDS = 1000 
+  // do not update MAX_WORDS, token limiter
+  const MAX_WORDS = 1000;
 
-  const wordCount = jobDescription.trim() === '' ? 0 : jobDescription.trim().split(/\s+/).length
-  const isOverLimit = wordCount > MAX_WORDS
+  const wordCount =
+    jobDescription.trim() === ""
+      ? 0
+      : jobDescription.trim().split(/\s+/).length;
+  const isOverLimit = wordCount > MAX_WORDS;
 
-  const handleJobDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setJobDescription(e.target.value)
-  }
+  const handleJobDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    setJobDescription(e.target.value);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file && file.type === 'application/pdf') {
-      setSelectedFile(file)
+    const file = e.target.files?.[0];
+
+    if (file && file.type === "application/pdf") {
+      setSelectedFile(file);
+      setError(null);
     } else {
-      alert('Please upload a PDF file')
+      setSelectedFile(null);
+      setError("Please upload a valid PDF file.");
     }
-  }
+  };
 
   const handleRemoveFile = () => {
-    setSelectedFile(null)
-  }
+    setSelectedFile(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
+    if (!jobDescription.trim()) {
+      setError("Job description is required.");
+      return;
+    }
+
     if (!selectedFile) {
-      setError('Please upload a resume file')
-      return
+      setError("Please upload a resume file");
+      return;
     }
 
     if (isOverLimit) {
-      setError(`Your job description exceeds the ${MAX_WORDS.toLocaleString()} word limit (${wordCount.toLocaleString()} words). Please shorten it and try again.`)
-      return
+      setError(
+        `Your job description exceeds the ${MAX_WORDS.toLocaleString()} word limit (${wordCount.toLocaleString()} words). Please shorten it and try again.`,
+      );
+      return;
     }
-    
-    setError(null)
-    setViewState('loading')
-    
+
+    setError(null);
+    setViewState("loading");
+
     try {
       const result = await analyzeResume({
         resume: selectedFile,
         jobDescription,
-      })
-      
-      setMatchResult(result)
-      setViewState('results')
+      });
+
+      setMatchResult(result);
+      setViewState("results");
     } catch (err) {
-      console.error('Resume analysis failed:', err)
-      
+      console.error("Resume analysis failed:", err);
+
       // Set user-friendly error message
-      let errorMessage = 'Failed to analyze resume. Please try again.'
-      
+      let errorMessage = "Failed to analyze resume. Please try again.";
+
       if (err instanceof ResumeAnalysisError) {
-        errorMessage = err.message
+        errorMessage = err.message;
       }
-      
-      setError(errorMessage)
-      setViewState('upload')
+
+      setError(errorMessage);
+      setViewState("upload");
     }
-  }
+  };
 
   const handleBack = () => {
-    setViewState('upload')
-    setMatchResult(null)
-    setError(null)
+    setViewState("upload");
+    setMatchResult(null);
+    setError(null);
+  };
+
+  if (viewState === "loading") {
+    return <LoadingScreen />;
   }
 
-  if (viewState === 'loading') {
-    return <LoadingScreen />
-  }
-
-  if (viewState === 'results' && matchResult) {
-    return <ResultsScreen result={matchResult} onBack={handleBack} />
+  if (viewState === "results" && matchResult) {
+    return <ResultsScreen result={matchResult} onBack={handleBack} />;
   }
 
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-foreground">Job Matcher</h1>
-        <p className="text-sm text-muted-foreground mt-1">Upload a job description and resume to find the best match</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Upload a job description and resume to find the best match
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Error Message */}
         {error && (
-          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-            {error}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {/* Two-column inputs */}
@@ -114,8 +135,11 @@ export function JobUpload() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="job-description">Job Description</Label>
-              <span className={`text-xs ${isOverLimit ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                {wordCount.toLocaleString()} / {MAX_WORDS.toLocaleString()} words
+              <span
+                className={`text-xs ${isOverLimit ? "text-destructive font-medium" : "text-muted-foreground"}`}
+              >
+                {wordCount.toLocaleString()} / {MAX_WORDS.toLocaleString()}{" "}
+                words
               </span>
             </div>
             <Textarea
@@ -123,8 +147,7 @@ export function JobUpload() {
               placeholder="Enter the job description, requirements, and responsibilities..."
               value={jobDescription}
               onChange={handleJobDescriptionChange}
-              className={`min-h-[280px] resize-y ${isOverLimit ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-              required
+              className={`min-h-[280px] resize-y ${isOverLimit ? "border-destructive focus-visible:ring-destructive" : ""}`}
             />
           </div>
 
@@ -154,9 +177,9 @@ export function JobUpload() {
                     <button
                       type="button"
                       onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handleRemoveFile()
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveFile();
                       }}
                       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
@@ -170,7 +193,9 @@ export function JobUpload() {
                     <p className="text-sm text-muted-foreground">
                       Click to upload or drag and drop
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">PDF files only</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PDF files only
+                    </p>
                   </>
                 )}
               </label>
@@ -178,10 +203,15 @@ export function JobUpload() {
           </div>
         </div>
 
-        <Button type="submit" className="w-full" size="lg" disabled={isOverLimit}>
+        <Button
+          type="submit"
+          className="w-full"
+          size="lg"
+          disabled={isOverLimit}
+        >
           Compare Candidate
         </Button>
       </form>
     </div>
-  )
+  );
 }

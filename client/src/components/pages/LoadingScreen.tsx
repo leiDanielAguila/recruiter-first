@@ -1,55 +1,56 @@
-import { useEffect, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Brain, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Brain, ChevronLeft, ChevronRight } from "lucide-react";
 
 const tips = [
   {
-    heading: 'Tailor every application',
-    body: 'Customize your resume for each job posting. Recruiters spend an average of 7 seconds scanning a resume — make those seconds count.',
+    heading: "Tailor every application",
+    body: "Customize your resume for each job posting. Recruiters spend an average of 7 seconds scanning a resume — make those seconds count.",
   },
   {
-    heading: 'Use measurable achievements',
+    heading: "Use measurable achievements",
     body: 'Replace vague duties with concrete results. "Increased sales by 30%" is far more compelling than "responsible for sales."',
   },
   {
-    heading: 'Mirror the job description',
-    body: 'Incorporate keywords from the job posting into your resume to pass ATS filters and signal alignment with the role.',
+    heading: "Mirror the job description",
+    body: "Incorporate keywords from the job posting into your resume to pass ATS filters and signal alignment with the role.",
   },
   {
-    heading: 'Keep it to one page (usually)',
-    body: 'Unless you have 10+ years of experience, a single well-formatted page is typically more effective than two sparse ones.',
+    heading: "Keep it to one page (usually)",
+    body: "Unless you have 10+ years of experience, a single well-formatted page is typically more effective than two sparse ones.",
   },
   {
-    heading: 'Lead with impact',
-    body: 'Put your strongest, most relevant experience at the top. Recruiters read top-to-bottom, so front-load what matters most.',
+    heading: "Lead with impact",
+    body: "Put your strongest, most relevant experience at the top. Recruiters read top-to-bottom, so front-load what matters most.",
   },
   {
-    heading: 'Your summary is your pitch',
-    body: 'A 2–3 sentence professional summary at the top gives context and hooks the reader before they dive into the details.',
+    heading: "Your summary is your pitch",
+    body: "A 2–3 sentence professional summary at the top gives context and hooks the reader before they dive into the details.",
   },
-]
+];
 
 export function LoadingScreen() {
-  const [currentTip, setCurrentTip] = useState(0)
-  const [fade, setFade] = useState(true)
+  const [currentTip, setCurrentTip] = useState(0);
+  const [fade, setFade] = useState(true);
 
-  const changeTip = (next: number) => {
-    setFade(false)
+  const changeTip = (next: number | ((prev: number) => number)) => {
+    setFade(false);
     setTimeout(() => {
-      setCurrentTip(next)
-      setFade(true)
-    }, 300)
-  }
+      setCurrentTip((prev) => (typeof next === "function" ? next(prev) : next));
+      setFade(true);
+    }, 300);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      changeTip((prev) => (prev + 1) % tips.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+      changeTip((prev) => (prev + 1) % tips.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const handlePrev = () => changeTip((currentTip - 1 + tips.length) % tips.length)
-  const handleNext = () => changeTip((currentTip + 1) % tips.length)
+  const handlePrev = () =>
+    changeTip((currentTip - 1 + tips.length) % tips.length);
+  const handleNext = () => changeTip((currentTip + 1) % tips.length);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -67,8 +68,12 @@ export function LoadingScreen() {
             </div>
 
             <div className="text-center space-y-1">
-              <p className="font-semibold text-foreground">Analyzing your resume…</p>
-              <p className="text-sm text-muted-foreground">This may take a few moments</p>
+              <p className="font-semibold text-foreground">
+                Analyzing your resume…
+              </p>
+              <p className="text-sm text-muted-foreground">
+                This may take a few moments
+              </p>
             </div>
 
             {/* Tip Carousel */}
@@ -80,7 +85,9 @@ export function LoadingScreen() {
                 className="min-h-[80px] transition-opacity duration-300"
                 style={{ opacity: fade ? 1 : 0 }}
               >
-                <p className="font-medium text-sm text-center">{tips[currentTip].heading}</p>
+                <p className="font-medium text-sm text-center">
+                  {tips[currentTip].heading}
+                </p>
                 <p className="text-sm text-muted-foreground text-center mt-1">
                   {tips[currentTip].body}
                 </p>
@@ -102,7 +109,7 @@ export function LoadingScreen() {
                       onClick={() => changeTip(i)}
                       aria-label={`Go to tip ${i + 1}`}
                       className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                        i === currentTip ? 'bg-[#262626]' : 'bg-[#262626]/20'
+                        i === currentTip ? "bg-[#262626]" : "bg-[#262626]/20"
                       }`}
                     />
                   ))}
@@ -120,5 +127,5 @@ export function LoadingScreen() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
