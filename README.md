@@ -185,4 +185,6 @@ Content-Type: multipart/form-data
 
 ## License
 
-Educational purposes only.
+This repository is currently maintained as a Proof of Concept.
+
+The project owner plans to adopt the MIT License in a future release.

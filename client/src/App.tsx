@@ -15,6 +15,7 @@ import {
   SmartPdfEditor,
   JobPool,
   SettingsPage,
+  TermsAndConditionsPage,
 } from "@/components/pages";
 
 function ProtectedRoute({ children }: { children: ReactElement }) {
@@ -66,6 +67,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<PublicRoute />} />
+        <Route path="/terms" element={<TermsAndConditionsPage />} />
         <Route
           path="/dashboard"
           element={
@@ -83,6 +85,7 @@ function App() {
           <Route path="letter-architect" element={<LetterArchitect />} />
           <Route path="smart-pdf-editor" element={<SmartPdfEditor />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="terms" element={<TermsAndConditionsPage />} />
         </Route>
       </Routes>
     </Router>

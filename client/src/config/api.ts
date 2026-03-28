@@ -43,4 +43,9 @@ export const API_ENDPOINTS = {
     create: `${API_BASE_URL}/api/v1/job-applications`,
     byId: (id: string) => `${API_BASE_URL}/api/v1/job-applications/${id}`,
   },
+  settings: {
+    get: `${API_BASE_URL}/api/v1/settings`,
+    update: `${API_BASE_URL}/api/v1/settings`,
+    acknowledgeTerms: `${API_BASE_URL}/api/v1/settings/terms/acknowledge`,
+  },
 } as const;
