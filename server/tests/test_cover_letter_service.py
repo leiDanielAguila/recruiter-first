@@ -24,11 +24,18 @@ async def test_generate_cover_letter_success():
         new_callable=AsyncMock,
     ) as mock_generate:
         mock_generate.return_value = mock_response
-        document = await generate_cover_letter(payload)
+        document = await generate_cover_letter(
+            request_data=payload,
+            applicant_full_name="John Doe",
+        )
+
+    called_kwargs = mock_generate.await_args.kwargs
+    prompt = called_kwargs["contents"]
 
     assert document.cover_letter.startswith("Dear Acme Hiring Team")
     assert document.hiring_manager_name == "Acme Hiring Team"
     assert document.job_title == "Software Engineer"
+    assert "APPLICANT NAME: John Doe" in prompt
 
 
 @pytest.mark.asyncio
@@ -50,7 +57,10 @@ async def test_generate_cover_letter_raises_on_empty_ai_output():
     ) as mock_generate:
         mock_generate.return_value = mock_response
         with pytest.raises(ValueError):
-            await generate_cover_letter(payload)
+            await generate_cover_letter(
+                request_data=payload,
+                applicant_full_name="John Doe",
+            )
 
 
 @pytest.mark.asyncio
@@ -70,4 +80,7 @@ async def test_generate_cover_letter_wraps_provider_error():
     ) as mock_generate:
         mock_generate.side_effect = Exception("provider unavailable")
         with pytest.raises(RuntimeError):
-            await generate_cover_letter(payload)
+            await generate_cover_letter(
+                request_data=payload,
+                applicant_full_name="John Doe",
+            )

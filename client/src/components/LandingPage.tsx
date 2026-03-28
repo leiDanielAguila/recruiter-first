@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/services/authStore";
 import { AuthApiError } from "@/services/auth";
 
@@ -344,6 +344,17 @@ export function LandingPage() {
             >
               {mode === "signin" ? "Sign up" : "Sign in"}
             </button>
+          </p>
+
+          <p className="text-xs text-center text-muted-foreground">
+            By continuing, you agree to our{" "}
+            <Link
+              to="/terms"
+              className="font-medium text-foreground hover:underline"
+            >
+              Terms & Conditions
+            </Link>
+            .
           </p>
         </div>
       </div>
