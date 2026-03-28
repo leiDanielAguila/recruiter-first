@@ -96,7 +96,13 @@ export function JobPool() {
   }
 
   const handleAdd = async () => {
-    if (!newJob.job || !newJob.company || !newJob.date) return;
+    if (
+      !newJob.job ||
+      !newJob.company ||
+      !newJob.date ||
+      !newJob.description.trim()
+    )
+      return;
 
     try {
       await createMutation.mutateAsync(newJob);
@@ -378,12 +384,7 @@ export function JobPool() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="description">
-                Job Description{" "}
-                <span className="text-muted-foreground font-normal">
-                  (optional)
-                </span>
-              </Label>
+              <Label htmlFor="description">Job Description</Label>
               <Textarea
                 id="description"
                 placeholder="Paste the job description here..."
@@ -391,6 +392,7 @@ export function JobPool() {
                 onChange={(e) =>
                   setNewJob((p) => ({ ...p, description: e.target.value }))
                 }
+                required
                 className="min-h-[120px] resize-y"
               />
             </div>
@@ -412,6 +414,7 @@ export function JobPool() {
                 !newJob.job ||
                 !newJob.company ||
                 !newJob.date ||
+                !newJob.description.trim() ||
                 createMutation.isPending
               }
             >

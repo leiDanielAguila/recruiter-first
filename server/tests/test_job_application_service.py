@@ -40,7 +40,7 @@ async def test_create_job_application_skips_ai_when_manual_has_five():
         company="Acme",
         date="2026-03-28",
         status="Applied",
-        description="",
+        description="Detailed backend engineering role description.",
         hiring_manager_name="",
         requirements=["Python", "FastAPI", "SQL", "Docker", "Kubernetes"],
     )
@@ -92,7 +92,7 @@ async def test_create_job_application_merges_manual_then_ai_with_normalized_dedu
 @pytest.mark.asyncio
 async def test_create_job_application_requires_description_when_manual_under_five():
     db = _FakeDB()
-    application = JobApplicationCreate(
+    application = JobApplicationCreate.model_construct(
         job="Backend Engineer",
         company="Acme",
         date="2026-03-28",
@@ -100,6 +100,27 @@ async def test_create_job_application_requires_description_when_manual_under_fiv
         description="   ",
         hiring_manager_name="",
         requirements=["Python", "FastAPI"],
+    )
+
+    with pytest.raises(HTTPException) as error:
+        await create_job_application(cast(Session, db), uuid4(), application)
+
+    assert error.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert "job description is required" in error.value.detail.lower()
+    assert db.committed is False
+
+
+@pytest.mark.asyncio
+async def test_create_job_application_requires_description_even_when_manual_has_five():
+    db = _FakeDB()
+    application = JobApplicationCreate.model_construct(
+        job="Backend Engineer",
+        company="Acme",
+        date="2026-03-28",
+        status="Applied",
+        description="   ",
+        hiring_manager_name="",
+        requirements=["Python", "FastAPI", "SQL", "Docker", "Kubernetes"],
     )
 
     with pytest.raises(HTTPException) as error:

@@ -29,6 +29,11 @@ export const API_ENDPOINTS = {
   resume: {
     analyze: `${API_BASE_URL}/api/v1/resume/analyze`,
   },
+  coverLetter: {
+    generate: `${API_BASE_URL}/api/v1/cover-letter/generate`,
+    exportPdf: (documentId: string) =>
+      `${API_BASE_URL}/api/v1/cover-letter/${documentId}/export-pdf`,
+  },
   analytics: {
     visit: `${API_BASE_URL}/api/analytics/visit`,
     visits: `${API_BASE_URL}/api/analytics/visits`,

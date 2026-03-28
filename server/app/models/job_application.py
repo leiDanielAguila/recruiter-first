@@ -47,7 +47,13 @@ class JobApplicationCreate(JobApplicationBase):
     Request schema for creating a new job application.
     Used when frontend sends POST request to create an application.
     """
-    pass
+    @field_validator("description")
+    @classmethod
+    def validate_required_description(cls, value: str) -> str:
+        """Ensure description is provided for creation."""
+        if not value.strip():
+            raise ValueError("Job description is required.")
+        return value
 
 
 class JobApplicationUpdate(BaseModel):
@@ -84,6 +90,16 @@ class JobApplicationUpdate(BaseModel):
         if len(cleaned_values) > MAX_REQUIREMENTS:
             raise ValueError(f"A maximum of {MAX_REQUIREMENTS} requirements is allowed.")
         return cleaned_values
+
+    @field_validator("description")
+    @classmethod
+    def validate_optional_description(cls, value: str | None) -> str | None:
+        """Ensure provided update descriptions are not blank."""
+        if value is None:
+            return None
+        if not value.strip():
+            raise ValueError("Job description cannot be empty.")
+        return value
 
 
 class JobRequirementsResponse(BaseModel):

@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
 import { useJobApplications, type ApplicationStatus } from "@/services/jobPool";
+import {
+  CoverLetterError,
+  exportCoverLetterPdf,
+  generateCoverLetter,
+} from "@/services/coverLetter";
 
 type LetterForm = {
   hiringManagerName: string;
@@ -37,12 +43,19 @@ export function LetterArchitect() {
   const [form, setForm] = useState<LetterForm>(EMPTY_FORM);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [generatedLetter, setGeneratedLetter] = useState<string>("");
+  const [generatedDocumentId, setGeneratedDocumentId] = useState<string>("");
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleJobSelect = (id: string) => {
     const newId = id === selectedJobId ? "" : id;
     setSelectedJobId(newId);
+    setGeneratedLetter("");
+    setGeneratedDocumentId("");
+
     if (!newId) {
       setForm(EMPTY_FORM);
       return;
@@ -85,17 +98,12 @@ export function LetterArchitect() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
     if (!form.jobTitle.trim()) {
       setFormError("Job title is required.");
-      return;
-    }
-
-    if (!form.hiringManagerName.trim()) {
-      setFormError("Hiring manager name is required.");
       return;
     }
 
@@ -119,13 +127,79 @@ export function LetterArchitect() {
       return;
     }
 
-    // TODO: connect to backend letter generation service
+    const selectedJob = appliedJobs.find((job) => job.id === selectedJobId);
+    const company = selectedJob?.company ?? "";
+    const resolvedHiringManagerName = form.hiringManagerName.trim()
+      ? form.hiringManagerName.trim()
+      : company
+        ? `${company} Hiring Team`
+        : "Hiring Team";
+
+    setIsGenerating(true);
+
+    try {
+      const result = await generateCoverLetter({
+        jobTitle: form.jobTitle,
+        hiringManagerName: resolvedHiringManagerName,
+        email: form.email,
+        phone: form.phone,
+        requirements: form.requirements,
+        company,
+      });
+
+      setForm((prev) => ({
+        ...prev,
+        hiringManagerName: resolvedHiringManagerName,
+      }));
+      setGeneratedLetter(result.coverLetter);
+      setGeneratedDocumentId(result.documentId);
+    } catch (error) {
+      if (error instanceof CoverLetterError) {
+        setFormError(error.message);
+      } else {
+        setFormError("Failed to generate cover letter. Please try again.");
+      }
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleReset = () => {
     setForm(EMPTY_FORM);
     setSelectedJobId("");
     setFormError(null);
+    setGeneratedLetter("");
+    setGeneratedDocumentId("");
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!generatedDocumentId) {
+      setFormError("Generate a cover letter before exporting to PDF.");
+      return;
+    }
+
+    setFormError(null);
+    setIsDownloading(true);
+
+    try {
+      const pdfBlob = await exportCoverLetterPdf(generatedDocumentId);
+      const url = URL.createObjectURL(pdfBlob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${form.jobTitle.trim() || "cover-letter"}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      if (error instanceof CoverLetterError) {
+        setFormError(error.message);
+      } else {
+        setFormError("Failed to export PDF. Please try again.");
+      }
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const filledRequirements = form.requirements.filter(
@@ -269,11 +343,35 @@ export function LetterArchitect() {
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <Button type="submit">Generate Cover Letter</Button>
+            <Button type="submit" disabled={isGenerating}>
+              {isGenerating ? "Generating..." : "Generate Cover Letter"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDownloadPdf}
+              disabled={!generatedDocumentId || isDownloading}
+            >
+              {isDownloading ? "Exporting..." : "Export PDF"}
+            </Button>
             <Button type="button" variant="outline" onClick={handleReset}>
               Reset
             </Button>
           </div>
+
+          {generatedLetter && (
+            <div className="space-y-2">
+              <Label htmlFor="generated-cover-letter">
+                Generated Cover Letter
+              </Label>
+              <Textarea
+                id="generated-cover-letter"
+                value={generatedLetter}
+                readOnly
+                className="min-h-[220px] resize-y"
+              />
+            </div>
+          )}
         </form>
 
         {/* Job Pool cards — right side */}

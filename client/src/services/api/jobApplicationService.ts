@@ -191,7 +191,6 @@ export function useJobApplications(): UseQueryResult<JobApplication[], Error> {
   return useQuery({
     queryKey: QUERY_KEYS.jobApplicationsList(),
     queryFn: getJobApplications,
-    staleTime: 60000, // 1 minute
     retry: false, // Don't retry on auth failures
   });
 }

@@ -178,7 +178,11 @@ export function JobUpload() {
                 placeholder="Enter the job description, requirements, and responsibilities..."
                 value={jobDescription}
                 onChange={handleJobDescriptionChange}
-                className={`min-h-[280px] resize-y ${isOverLimit ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                className={`h-[280px] max-h-[280px] overflow-y-auto resize-none ${
+                  isOverLimit
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }`}
               />
             </div>
 

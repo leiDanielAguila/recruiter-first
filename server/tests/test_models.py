@@ -203,3 +203,19 @@ class TestJobApplicationModels:
     def test_job_application_update_rejects_more_than_five_requirements(self):
         with pytest.raises(ValidationError):
             JobApplicationUpdate(requirements=["a", "b", "c", "d", "e", "f"])
+
+    def test_job_application_create_rejects_blank_description(self):
+        with pytest.raises(ValidationError):
+            JobApplicationCreate(
+                job="Backend Engineer",
+                company="Acme",
+                date="2026-03-28",
+                status="Applied",
+                description="   ",
+                hiring_manager_name="",
+                requirements=["Python"],
+            )
+
+    def test_job_application_update_rejects_blank_description_when_provided(self):
+        with pytest.raises(ValidationError):
+            JobApplicationUpdate(description="   ")

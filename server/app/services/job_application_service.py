@@ -85,23 +85,21 @@ async def create_job_application(
     Raises:
         HTTPException: If database operation fails
     """
+    description = application_data.description.strip()
+    if not description:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job description is required.",
+        )
+
     manual_requirements = _dedupe_requirements(application_data.requirements)
 
     if len(manual_requirements) >= MAX_REQUIREMENTS:
         final_requirements = manual_requirements
     else:
-        if not application_data.description.strip():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "A job description is required when fewer than "
-                    f"{MAX_REQUIREMENTS} manual requirements are provided."
-                ),
-            )
-
         try:
             ai_response = await generate_job_requirements_from_description(
-                application_data.description,
+                description,
                 max_requirements=MAX_REQUIREMENTS,
             )
         except ValueError as error:
@@ -128,7 +126,7 @@ async def create_job_application(
             company=application_data.company,
             date=application_data.date,
             status=application_data.status,
-            description=application_data.description,
+            description=description,
             hiring_manager_name=application_data.hiring_manager_name,
             requirements=final_requirements,
         )
