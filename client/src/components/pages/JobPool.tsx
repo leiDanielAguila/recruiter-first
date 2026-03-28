@@ -19,15 +19,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  useJobPoolStore,
+  useJobApplications,
+  useCreateJobApplication,
+  useUpdateJobApplication,
+  useDeleteJobApplication,
   type ApplicationStatus,
   type JobApplication,
 } from "@/services/jobPool";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
   Applied: "bg-blue-100 text-blue-800 border-blue-200",
   Interviewing: "bg-yellow-100 text-yellow-800 border-yellow-200",
   Offer: "bg-green-100 text-green-800 border-green-200",
+  Replied: "bg-orange-100 text-orange-800 border-orange-200",
   Rejected: "bg-red-100 text-red-800 border-red-200",
   Withdrawn: "bg-gray-100 text-gray-600 border-gray-200",
 };
@@ -75,32 +81,59 @@ const EMPTY_FORM = {
 };
 
 export function JobPool() {
-  const { jobs, addJob, removeJob, updateJobStatus } = useJobPoolStore();
+  const { data: jobs = [], isLoading, error } = useJobApplications();
+  const createMutation = useCreateJobApplication();
+  const updateMutation = useUpdateJobApplication();
+  const deleteMutation = useDeleteJobApplication();
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
   const [newJob, setNewJob] = useState(EMPTY_FORM);
 
-  const handleAdd = () => {
+  // Debug logging
+  if (error) {
+    console.error("JobPool query error:", error);
+  }
+
+  const handleAdd = async () => {
     if (!newJob.job || !newJob.company || !newJob.date) return;
-    addJob(newJob);
-    setNewJob(EMPTY_FORM);
-    setIsAddOpen(false);
+
+    try {
+      await createMutation.mutateAsync(newJob);
+      setNewJob(EMPTY_FORM);
+      setIsAddOpen(false);
+    } catch (error) {
+      console.error("Failed to create job application:", error);
+    }
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    removeJob(id);
-    if (selectedJob?.id === id) setSelectedJob(null);
+
+    try {
+      await deleteMutation.mutateAsync(id);
+      if (selectedJob?.id === id) setSelectedJob(null);
+    } catch (error) {
+      console.error("Failed to delete job application:", error);
+    }
   };
 
-  const handleStatusChange = (status: string) => {
+  const handleStatusChange = async (status: string) => {
     if (!selectedJob) {
       return;
     }
 
     const nextStatus = status as ApplicationStatus;
-    updateJobStatus(selectedJob.id, nextStatus);
-    setSelectedJob((prev) => (prev ? { ...prev, status: nextStatus } : prev));
+
+    try {
+      await updateMutation.mutateAsync({
+        id: selectedJob.id,
+        data: { status: nextStatus },
+      });
+      setSelectedJob((prev) => (prev ? { ...prev, status: nextStatus } : prev));
+    } catch (error) {
+      console.error("Failed to update job status:", error);
+    }
   };
 
   return (
@@ -112,13 +145,32 @@ export function JobPool() {
             Track your job applications
           </p>
         </div>
-        <Button size="sm" className="gap-2" onClick={() => setIsAddOpen(true)}>
+        <Button
+          size="sm"
+          className="gap-2"
+          onClick={() => setIsAddOpen(true)}
+          disabled={createMutation.isPending}
+        >
           <Plus className="w-4 h-4" />
           Add Application
         </Button>
       </div>
 
-      {jobs.length === 0 ? (
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error.message ||
+              "Failed to load job applications. Please try again."}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : jobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Briefcase className="w-12 h-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground">
@@ -263,11 +315,11 @@ export function JobPool() {
 
       {/* Add Application Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Add Job Application</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 overflow-y-auto pr-1">
             <div className="space-y-1.5">
               <Label htmlFor="job-title">Job Title</Label>
               <Input
@@ -343,21 +395,34 @@ export function JobPool() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-2 shrink-0">
             <Button
               variant="outline"
               onClick={() => {
                 setIsAddOpen(false);
                 setNewJob(EMPTY_FORM);
               }}
+              disabled={createMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               onClick={handleAdd}
-              disabled={!newJob.job || !newJob.company || !newJob.date}
+              disabled={
+                !newJob.job ||
+                !newJob.company ||
+                !newJob.date ||
+                createMutation.isPending
+              }
             >
-              Add
+              {createMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                "Add"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -10,12 +10,25 @@ import {
   type MatchResult,
 } from "@/components/pages/ResultsScreen";
 import { analyzeResume, ResumeAnalysisError } from "@/services/resume";
+import { useJobApplications, type ApplicationStatus } from "@/services/jobPool";
 
 type ViewState = "upload" | "loading" | "results";
 
+const STATUS_STYLES: Record<ApplicationStatus, string> = {
+  Applied: "bg-blue-100 text-blue-800 border-blue-200",
+  Interviewing: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  Offer: "bg-green-100 text-green-800 border-green-200",
+  Replied: "bg-orange-100 text-orange-800 border-orange-200",
+  Rejected: "bg-red-100 text-red-800 border-red-200",
+  Withdrawn: "bg-gray-100 text-gray-600 border-gray-200",
+};
+
 export function JobUpload() {
+  const { data: jobs = [] } = useJobApplications();
+  const jobPoolJobs = jobs;
   const [jobDescription, setJobDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [viewState, setViewState] = useState<ViewState>("upload");
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +46,24 @@ export function JobUpload() {
   const handleJobDescriptionChange = (
     e: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
+    setSelectedJobId("");
     setJobDescription(e.target.value);
+  };
+
+  const handleJobSelect = (id: string) => {
+    const newId = id === selectedJobId ? "" : id;
+    setSelectedJobId(newId);
+
+    if (!newId) {
+      setJobDescription("");
+      return;
+    }
+
+    const selectedJob = jobPoolJobs.find((job) => job.id === newId);
+    if (!selectedJob) return;
+
+    setJobDescription(selectedJob.description);
+    setError(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +116,6 @@ export function JobUpload() {
     } catch (err) {
       console.error("Resume analysis failed:", err);
 
-      // Set user-friendly error message
       let errorMessage = "Failed to analyze resume. Please try again.";
 
       if (err instanceof ResumeAnalysisError) {
@@ -121,97 +150,141 @@ export function JobUpload() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        {/* Error Message */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Two-column inputs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Job Description */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="job-description">Job Description</Label>
-              <span
-                className={`text-xs ${isOverLimit ? "text-destructive font-medium" : "text-muted-foreground"}`}
-              >
-                {wordCount.toLocaleString()} / {MAX_WORDS.toLocaleString()}{" "}
-                words
-              </span>
-            </div>
-            <Textarea
-              id="job-description"
-              placeholder="Enter the job description, requirements, and responsibilities..."
-              value={jobDescription}
-              onChange={handleJobDescriptionChange}
-              className={`min-h-[280px] resize-y ${isOverLimit ? "border-destructive focus-visible:ring-destructive" : ""}`}
-            />
-          </div>
-
-          {/* PDF Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="resume-upload">Upload Resume/CV (PDF)</Label>
-            <div className="relative h-[280px]">
-              <input
-                id="resume-upload"
-                type="file"
-                accept=".pdf"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <label
-                htmlFor="resume-upload"
-                className="flex flex-col items-center justify-center w-full h-full border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
-              >
-                {selectedFile ? (
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="flex items-center gap-2 text-foreground">
-                      <FileText className="w-6 h-6" />
-                      <span className="text-sm font-medium truncate max-w-[180px]">
-                        {selectedFile.name}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleRemoveFile();
-                      }}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      PDF files only
-                    </p>
-                  </>
-                )}
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full"
-          size="lg"
-          disabled={isOverLimit}
+      <div className="flex gap-8 items-start">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="flex-1 space-y-6 min-w-0"
         >
-          Compare Candidate
-        </Button>
-      </form>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="job-description">Job Description</Label>
+                <span
+                  className={`text-xs ${isOverLimit ? "text-destructive font-medium" : "text-muted-foreground"}`}
+                >
+                  {wordCount.toLocaleString()} / {MAX_WORDS.toLocaleString()}{" "}
+                  words
+                </span>
+              </div>
+              <Textarea
+                id="job-description"
+                placeholder="Enter the job description, requirements, and responsibilities..."
+                value={jobDescription}
+                onChange={handleJobDescriptionChange}
+                className={`min-h-[280px] resize-y ${isOverLimit ? "border-destructive focus-visible:ring-destructive" : ""}`}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="resume-upload">Upload Resume/CV (PDF)</Label>
+              <div className="relative h-[280px]">
+                <input
+                  id="resume-upload"
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="resume-upload"
+                  className="flex flex-col items-center justify-center w-full h-full border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  {selectedFile ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex items-center gap-2 text-foreground">
+                        <FileText className="w-6 h-6" />
+                        <span className="text-sm font-medium truncate max-w-[180px]">
+                          {selectedFile.name}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRemoveFile();
+                        }}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        PDF files only
+                      </p>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            size="lg"
+            disabled={isOverLimit}
+          >
+            Compare Candidate
+          </Button>
+        </form>
+
+        {jobPoolJobs.length > 0 && (
+          <div className="w-64 shrink-0 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                From Job Pool
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Click a card to auto-fill
+              </p>
+            </div>
+            {jobPoolJobs.map((job) => {
+              const isSelected = selectedJobId === job.id;
+              return (
+                <button
+                  key={job.id}
+                  type="button"
+                  onClick={() => handleJobSelect(job.id)}
+                  className={`w-full text-left rounded-lg border p-3 transition-all ${
+                    isSelected
+                      ? "border-foreground bg-muted/60"
+                      : "border-border bg-transparent hover:bg-muted/30 hover:border-muted-foreground/40"
+                  }`}
+                >
+                  <p className="text-sm font-medium text-foreground leading-snug">
+                    {job.job}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {job.company}
+                  </p>
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[job.status]}`}
+                    >
+                      {job.status}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

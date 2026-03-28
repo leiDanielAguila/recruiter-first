@@ -33,4 +33,9 @@ export const API_ENDPOINTS = {
     visit: `${API_BASE_URL}/api/analytics/visit`,
     visits: `${API_BASE_URL}/api/analytics/visits`,
   },
+  jobApplications: {
+    list: `${API_BASE_URL}/api/v1/job-applications`,
+    create: `${API_BASE_URL}/api/v1/job-applications`,
+    byId: (id: string) => `${API_BASE_URL}/api/v1/job-applications/${id}`,
+  },
 } as const;

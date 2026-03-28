@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 from app.models.health import HealthCheckResponse, WelcomeResponse
 from app.models.resume import ResumeAnalysisRequest, ResumeAnalysisResponse
+from app.models.job_application import JobApplicationCreate, JobApplicationUpdate
 
 
 class TestHealthModels:
@@ -169,3 +170,36 @@ class TestResumeModels:
         assert isinstance(json_data["strengths"], list)
         assert isinstance(json_data["gaps"], list)
         assert isinstance(json_data["recommendations"], list)
+
+
+class TestJobApplicationModels:
+    """Test cases for job application models"""
+
+    def test_job_application_create_rejects_more_than_five_requirements(self):
+        with pytest.raises(ValidationError):
+            JobApplicationCreate(
+                job="Backend Engineer",
+                company="Acme",
+                date="2026-03-28",
+                status="Applied",
+                description="Role details",
+                hiring_manager_name="",
+                requirements=["a", "b", "c", "d", "e", "f"],
+            )
+
+    def test_job_application_create_trims_and_drops_empty_requirements(self):
+        model = JobApplicationCreate(
+            job="Backend Engineer",
+            company="Acme",
+            date="2026-03-28",
+            status="Applied",
+            description="Role details",
+            hiring_manager_name="",
+            requirements=["  Python  ", "", "   ", "FastAPI"],
+        )
+
+        assert model.requirements == ["Python", "FastAPI"]
+
+    def test_job_application_update_rejects_more_than_five_requirements(self):
+        with pytest.raises(ValidationError):
+            JobApplicationUpdate(requirements=["a", "b", "c", "d", "e", "f"])

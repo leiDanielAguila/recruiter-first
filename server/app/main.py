@@ -4,7 +4,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.rate_limit import limiter
 from app.core.database import init_db
-from app.api import health, resume, auth
+from app.api import health, resume, auth, job_application
 
 app = FastAPI(
     title="Recruiter First API",
@@ -36,3 +36,4 @@ app.add_middleware(
 app.include_router(health.router, tags=["Health"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(resume.router, prefix="/api/v1", tags=["Resume"])
+app.include_router(job_application.router, prefix="/api/v1", tags=["Job Applications"])

@@ -1,4 +1,5 @@
 from fastapi import UploadFile
+from app.models.job_application import JobRequirementsResponse, MAX_REQUIREMENTS
 from app.models.resume import ResumeAnalysisResponse
 from app.services.pdf_service import extract_text_from_pdf
 import os
@@ -13,6 +14,10 @@ load_dotenv()
 # Singleton client — created once at import time, reused across all requests
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+
+def _normalize_requirement_text(value: str) -> str:
+    return " ".join(value.split()).strip()
 
 
 async def validate_job_description(text: str) -> tuple[bool, str]:
@@ -55,6 +60,82 @@ async def validate_job_description(text: str) -> tuple[bool, str]:
 
     data = json.loads(response.text or "{}")
     return data.get("is_valid", False), data.get("reason", "Unable to classify input.")
+
+
+async def generate_job_requirements_from_description(
+    description: str,
+    max_requirements: int = MAX_REQUIREMENTS,
+) -> JobRequirementsResponse:
+    """Generate up to `max_requirements` concise requirements from a job description."""
+    if max_requirements < 1:
+        raise ValueError("max_requirements must be at least 1.")
+
+    if not description or not description.strip():
+        raise ValueError("Job description is required to generate requirements.")
+
+    prompt = (
+        "Extract clear, concise job requirements from the following job description.\n\n"
+        f"Return between 0 and {max_requirements} requirements in priority order.\n"
+        "Each requirement should be a single sentence fragment and avoid duplicates.\n"
+        "Only include concrete qualifications, skills, or responsibilities that are relevant for screening candidates.\n\n"
+        f"JOB DESCRIPTION:\n{description}\n\n"
+        'Respond only in JSON: {"requirements": ["<requirement 1>", "<requirement 2>"]}'
+    )
+
+    try:
+        response = await client.aio.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json",
+                response_schema={
+                    "type": "object",
+                    "properties": {
+                        "requirements": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        }
+                    },
+                    "required": ["requirements"]
+                }
+            )
+        )
+
+        response_text = response.text or ""
+        if not response_text:
+            raise ValueError("Empty response from AI requirement generator.")
+
+        payload = json.loads(response_text)
+        raw_requirements = payload.get("requirements", [])
+
+        if not isinstance(raw_requirements, list):
+            raise ValueError("Invalid AI response format for requirements.")
+
+        normalized_requirements: list[str] = []
+        seen: set[str] = set()
+
+        for item in raw_requirements:
+            if not isinstance(item, str):
+                continue
+            cleaned = _normalize_requirement_text(item)
+            if not cleaned:
+                continue
+            key = cleaned.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized_requirements.append(cleaned)
+            if len(normalized_requirements) >= max_requirements:
+                break
+
+        return JobRequirementsResponse(requirements=normalized_requirements)
+    except json.JSONDecodeError as error:
+        raise ValueError("Failed to parse AI-generated requirements.") from error
+    except ValueError:
+        raise
+    except Exception as error:
+        raise RuntimeError("Failed to generate job requirements.") from error
 
 
 async def analyze_resume(resume: UploadFile, job_description: str) -> ResumeAnalysisResponse:

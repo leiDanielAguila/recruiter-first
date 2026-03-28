@@ -7,6 +7,9 @@ while maintaining separation from route handlers.
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
+from typing import cast
+from uuid import UUID
+from datetime import datetime
 from app.models.database.user import User
 from app.models.auth import SignUpRequest, SignInRequest, UserResponse, TokenResponse
 from app.utils.security import hash_password, verify_password, create_access_token
@@ -87,13 +90,15 @@ def authenticate_user(db: Session, signin_data: SignInRequest) -> User:
             detail="Invalid email or password. Please check your credentials and try again."
         )
     
-    if not verify_password(signin_data.password, user.hashed_password):
+    hashed_password = cast(str, user.hashed_password)
+    if not verify_password(signin_data.password, hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password. Please check your credentials and try again."
         )
     
-    if not user.is_active:
+    is_active = cast(bool, user.is_active)
+    if not is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account has been deactivated. Please contact support for assistance."
@@ -114,13 +119,20 @@ def generate_token_response(user: User) -> TokenResponse:
     """
     access_token = create_access_token(data={"sub": str(user.id)})
     
+    user_id = cast(UUID, user.id)
+    email = cast(str, user.email)
+    first_name = cast(str, user.first_name)
+    last_name = cast(str, user.last_name)
+    is_active = cast(bool, user.is_active)
+    created_at = cast(datetime, user.created_at)
+
     user_response = UserResponse(
-        id=user.id,
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        is_active=user.is_active,
-        created_at=user.created_at
+        id=user_id,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        is_active=is_active,
+        created_at=created_at
     )
     
     return TokenResponse(

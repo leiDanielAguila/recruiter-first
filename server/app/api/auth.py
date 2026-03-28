@@ -6,6 +6,9 @@ retrieving current user information.
 """
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
+from typing import cast
+from uuid import UUID
+from datetime import datetime
 from app.core.database import get_db
 from app.models.auth import SignUpRequest, SignInRequest, TokenResponse, UserResponse
 from app.services import auth_service
@@ -81,11 +84,18 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         401 Unauthorized: If token is invalid or expired
         403 Forbidden: If account is deactivated
     """
+    user_id = cast(UUID, current_user.id)
+    email = cast(str, current_user.email)
+    first_name = cast(str, current_user.first_name)
+    last_name = cast(str, current_user.last_name)
+    is_active = cast(bool, current_user.is_active)
+    created_at = cast(datetime, current_user.created_at)
+
     return UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        first_name=current_user.first_name,
-        last_name=current_user.last_name,
-        is_active=current_user.is_active,
-        created_at=current_user.created_at
+        id=user_id,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        is_active=is_active,
+        created_at=created_at
     )

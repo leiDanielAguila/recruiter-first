@@ -52,4 +52,5 @@ def init_db() -> None:
     Should be called on application startup.
     """
     import app.models.database.user
+    import app.models.database.job_application
     Base.metadata.create_all(bind=engine)

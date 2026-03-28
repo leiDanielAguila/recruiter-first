@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useJobPoolStore, type ApplicationStatus } from "@/services/jobPool";
+import { useJobApplications, type ApplicationStatus } from "@/services/jobPool";
 
 type LetterForm = {
   hiringManagerName: string;
@@ -26,12 +26,14 @@ const STATUS_STYLES: Record<ApplicationStatus, string> = {
   Applied: "bg-blue-100 text-blue-800 border-blue-200",
   Interviewing: "bg-yellow-100 text-yellow-800 border-yellow-200",
   Offer: "bg-green-100 text-green-800 border-green-200",
+  Replied: "bg-orange-100 text-orange-800 border-orange-200",
   Rejected: "bg-red-100 text-red-800 border-red-200",
   Withdrawn: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
 export function LetterArchitect() {
-  const jobs = useJobPoolStore((s) => s.jobs);
+  const { data: jobs = [] } = useJobApplications();
+  const appliedJobs = jobs.filter((job) => job.status === "Applied");
   const [form, setForm] = useState<LetterForm>(EMPTY_FORM);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function LetterArchitect() {
       setForm(EMPTY_FORM);
       return;
     }
-    const job = jobs.find((j) => j.id === newId);
+    const job = appliedJobs.find((j) => j.id === newId);
     if (!job) return;
     setForm((prev) => ({
       ...prev,
@@ -275,7 +277,7 @@ export function LetterArchitect() {
         </form>
 
         {/* Job Pool cards — right side */}
-        {jobs.length > 0 && (
+        {appliedJobs.length > 0 && (
           <div className="w-64 shrink-0 space-y-3">
             <div>
               <p className="text-sm font-medium text-foreground">
@@ -285,7 +287,7 @@ export function LetterArchitect() {
                 Click a card to auto-fill
               </p>
             </div>
-            {jobs.map((job) => {
+            {appliedJobs.map((job) => {
               const isSelected = selectedJobId === job.id;
               return (
                 <button

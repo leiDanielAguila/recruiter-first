@@ -1,10 +1,23 @@
+/**
+ * Job Pool Service - Refactored to use TanStack Query
+ * 
+ * This module provides hooks for job application management with
+ * backward compatibility for existing Zustand-based components.
+ */
 import { create } from "zustand";
+import {
+  useJobApplications as useTanStackJobApplications,
+  useCreateJobApplication as useTanStackCreateJobApplication,
+  useUpdateJobApplication as useTanStackUpdateJobApplication,
+  useDeleteJobApplication as useTanStackDeleteJobApplication,
+} from "@/services/api/jobApplicationService";
 
 export type ApplicationStatus =
   | "Applied"
   | "Interviewing"
   | "Offer"
   | "Rejected"
+  | "Replied"
   | "Withdrawn";
 
 export type JobApplication = {
@@ -14,16 +27,17 @@ export type JobApplication = {
   date: string;
   status: ApplicationStatus;
   description: string;
-  // placeholder auto-fill data for Letter Architect
   hiringManagerName: string;
   requirements: string[];
 };
 
+// Legacy Zustand store with client-side mutations (backward compatible)
 type JobPoolStore = {
   jobs: JobApplication[];
   addJob: (job: Omit<JobApplication, "id">) => void;
   removeJob: (id: string) => void;
   updateJobStatus: (id: string, status: ApplicationStatus) => void;
+  setJobs: (jobs: JobApplication[]) => void;
 };
 
 const INITIAL_JOBS: JobApplication[] = [
@@ -152,12 +166,19 @@ export const useJobPoolStore = create<JobPoolStore>((set) => ({
   updateJobStatus: (id, status) =>
     set((state) => ({
       jobs: state.jobs.map((job) =>
-        job.id === id
-          ? {
-              ...job,
-              status,
-            }
-          : job,
+        job.id === id ? { ...job, status } : job
       ),
     })),
+  setJobs: (jobs) => set({ jobs }),
 }));
+
+// Re-export TanStack Query hooks for direct usage
+export {
+  useTanStackJobApplications as useJobApplications,
+  useTanStackCreateJobApplication as useCreateJobApplication,
+  useTanStackUpdateJobApplication as useUpdateJobApplication,
+  useTanStackDeleteJobApplication as useDeleteJobApplication,
+};
+
+export { INITIAL_JOBS };
+
