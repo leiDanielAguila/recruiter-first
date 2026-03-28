@@ -1,14 +1,16 @@
 from io import BytesIO
 import re
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.rate_limit import limiter
+from app.models.database.user import User
 from app.models.cover_letter import CoverLetterGenerateRequest, CoverLetterGenerateResponse
 from app.services.cover_letter_service import generate_cover_letter
 from app.services.cover_letter_store import get_cover_letter_store
 from app.services.pdf_service import render_cover_letter_pdf
+from app.utils.security import get_current_user
 from app.utils.sanitization import _INJECTION_PATTERNS, MAX_WORDS
 
 
@@ -35,6 +37,7 @@ def _build_pdf_filename(job_title: str) -> str:
 async def generate_cover_letter_endpoint(
     request: Request,
     payload: CoverLetterGenerateRequest,
+    current_user: User = Depends(get_current_user),
 ):
     """
     Generate a tailored cover letter using AI.
@@ -52,6 +55,8 @@ async def generate_cover_letter_endpoint(
         payload.email,
         payload.phone,
         payload.company,
+        current_user.first_name,
+        current_user.last_name,
         *payload.requirements,
     ]
 
@@ -68,7 +73,11 @@ async def generate_cover_letter_endpoint(
         )
 
     try:
-        document = await generate_cover_letter(payload)
+        applicant_full_name = f"{current_user.first_name} {current_user.last_name}".strip()
+        document = await generate_cover_letter(
+            request_data=payload,
+            applicant_full_name=applicant_full_name,
+        )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     except RuntimeError as error:

@@ -1,9 +1,13 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from fastapi import status
+import pytest
 
+from app.main import app
 from app.models.cover_letter import CoverLetterDocument
+from app.utils.security import get_current_user
 
 
 class _FakeStore:
@@ -21,6 +25,15 @@ class _FakeStore:
 
 
 class TestCoverLetterEndpoints:
+    @pytest.fixture(autouse=True)
+    def _override_current_user(self):
+        app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+            first_name="John",
+            last_name="Doe",
+        )
+        yield
+        app.dependency_overrides.pop(get_current_user, None)
+
     @patch("app.api.cover_letter.generate_cover_letter", new_callable=AsyncMock)
     @patch("app.api.cover_letter.get_cover_letter_store")
     def test_generate_cover_letter_success(self, mock_get_store, mock_generate_cover_letter, client):
@@ -57,6 +70,9 @@ class TestCoverLetterEndpoints:
         assert data["document_id"] == "doc-123"
         assert "cover_letter" in data
         assert fake_store.saved is not None
+
+        called_kwargs = mock_generate_cover_letter.await_args.kwargs
+        assert called_kwargs["applicant_full_name"] == "John Doe"
 
     def test_generate_cover_letter_rejects_injection_input(self, client):
         response = client.post(

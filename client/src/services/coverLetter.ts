@@ -16,6 +16,23 @@ export class CoverLetterError extends Error {
   }
 }
 
+function getAccessToken(): string {
+  const raw = localStorage.getItem("rf_auth_session_v1");
+  if (!raw) {
+    throw new CoverLetterError("Please sign in to continue.", 401);
+  }
+
+  try {
+    const session = JSON.parse(raw) as { accessToken?: string };
+    if (!session.accessToken) {
+      throw new CoverLetterError("Please sign in to continue.", 401);
+    }
+    return session.accessToken;
+  } catch {
+    throw new CoverLetterError("Please sign in to continue.", 401);
+  }
+}
+
 function toApiPayload(
   payload: CoverLetterGeneratePayload,
 ): ApiCoverLetterGeneratePayload {
@@ -43,10 +60,13 @@ function toDomainResult(
 export async function generateCoverLetter(
   payload: CoverLetterGeneratePayload,
 ): Promise<CoverLetterGenerateResult> {
+  const accessToken = getAccessToken();
+
   const response = await fetch(API_ENDPOINTS.coverLetter.generate, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(toApiPayload(payload)),
   });
@@ -74,18 +94,27 @@ export async function exportCoverLetterPdf(documentId: string): Promise<Blob> {
     );
   }
 
-  const response = await fetch(API_ENDPOINTS.coverLetter.exportPdf(documentId));
+  const accessToken = getAccessToken();
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({
+  const authorizedResponse = await fetch(
+    API_ENDPOINTS.coverLetter.exportPdf(documentId),
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!authorizedResponse.ok) {
+    const errorData = await authorizedResponse.json().catch(() => ({
       detail: "Failed to export PDF.",
     }));
 
     throw new CoverLetterError(
       errorData.detail || "Failed to export PDF.",
-      response.status,
+      authorizedResponse.status,
     );
   }
 
-  return response.blob();
+  return authorizedResponse.blob();
 }

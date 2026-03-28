@@ -39,7 +39,10 @@ def _normalize_cover_letter_text(value: str) -> str:
     return "\n".join(trimmed_lines).strip()
 
 
-async def generate_cover_letter(request_data: CoverLetterGenerateRequest) -> CoverLetterDocument:
+async def generate_cover_letter(
+    request_data: CoverLetterGenerateRequest,
+    applicant_full_name: str,
+) -> CoverLetterDocument:
     hiring_manager_name = _resolve_hiring_manager_name(request_data)
 
     prompt = (
@@ -54,6 +57,7 @@ async def generate_cover_letter(request_data: CoverLetterGenerateRequest) -> Cov
         f"JOB TITLE: {request_data.job_title}\n"
         f"HIRING MANAGER: {hiring_manager_name}\n"
         f"COMPANY: {request_data.company or 'Not provided'}\n"
+        f"APPLICANT NAME: {applicant_full_name}\n"
         f"APPLICANT EMAIL: {request_data.email}\n"
         f"APPLICANT PHONE: {request_data.phone}\n"
         f"CORE REQUIREMENTS: {json.dumps(request_data.requirements)}"
